@@ -1,0 +1,63 @@
+name: Daily Spend APK
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths-ignore:
+      - 'downloads/**'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Test, lint and build
+        run: bash ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-spend-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish APK to repository
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo "A newer source commit exists; skipping APK publication."
+            exit 0
+          fi
+          mkdir -p downloads
+          cp app/build/outputs/apk/debug/app-debug.apk downloads/daily-spend.apk
+          sha256sum downloads/daily-spend.apk > downloads/SHA256SUMS
+          printf '%s\n' "$GITHUB_SHA" > downloads/source-commit.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/daily-spend.apk downloads/SHA256SUMS downloads/source-commit.txt
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Update downloadable Android APKs [skip ci]'
+          git push origin HEAD:main
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-and-lint-reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results-debug.html
