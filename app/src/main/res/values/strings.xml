@@ -1,0 +1,3 @@
+<resources>
+    <string name="automation_description">仅在你开启页面识别后，读取微信和支付宝当前可访问的支付成功页面文字，在本机自动记账。不操作支付、不点击页面、不读取密码、不上传数据。受保护内容无法识别。可在日账设置中随时暂停。</string>
+</resources>
