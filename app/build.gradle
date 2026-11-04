@@ -6,12 +6,13 @@ android {
         applicationId 'com.cloudres.spend'
         minSdk 26
         targetSdk 35
-        versionCode 8
-        versionName '1.5.1'
+        versionCode 9
+        versionName '1.5.2'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildTypes { release { minifyEnabled false } }
 }
+
 
 
 

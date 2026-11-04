@@ -113,29 +113,37 @@ public class MainActivity extends Activity {
             add.setOnClickListener(v -> showEditor(null, null));
 
             add.setContentDescription("记一笔");
-            pad(add, 21, 21, 21, 21);
+            pad(add, 9, 9, 9, 9);
             add.setBackground(shape(accent, 40));
             LinearLayout.LayoutParams action = lp(80, 80);
             action.gravity = Gravity.CENTER_HORIZONTAL;
             action.bottomMargin = dp(8);
             root.addView(add, action);
         }
+        View separator = new View(this);
+        separator.setBackgroundColor(line);
+        root.addView(separator, lp(-1, 1));
         LinearLayout tabs = row();
-        tabs.addView(tab("账单", R.drawable.ic_ledger, false), new LinearLayout.LayoutParams(0, dp(48), 1));
-        View gap = new View(this);
-        tabs.addView(gap, lp(8, 1));
-        tabs.addView(tab("统计", R.drawable.ic_stats, true), new LinearLayout.LayoutParams(0, dp(48), 1));
-        root.addView(tabs);
+        tabs.addView(tab("账单", R.drawable.ic_ledger, false), new LinearLayout.LayoutParams(0, -1, 1));
+        tabs.addView(tab("统计", R.drawable.ic_stats, true), new LinearLayout.LayoutParams(0, -1, 1));
+        root.addView(tabs, lp(-1, 58));
     }
 
     private TextView tab(String label, int icon, boolean stats) {
-        TextView tab = button(label, () -> switchTab(stats), statistics == stats);
-        tab.setSelected(statistics == stats);
+        boolean selected = statistics == stats;
+        int tint = selected ? accent : muted;
+        TextView tab = text(label, 13, tint, selected);
+        tab.setGravity(Gravity.CENTER);
+        pad(tab, 0, 8, 0, 6);
+        tab.setSelected(selected);
+        tab.setOnClickListener(v -> switchTab(stats));
         android.graphics.drawable.Drawable glyph = getDrawable(icon).mutate();
-        glyph.setBounds(0, 0, dp(20), dp(20));
-        glyph.setTint(statistics == stats ? Color.WHITE : accent);
-        tab.setCompoundDrawablesRelative(glyph, null, null, null);
-        tab.setCompoundDrawablePadding(dp(6));
+        glyph.setBounds(0, 0, dp(23), dp(23));
+        glyph.setTint(tint);
+        tab.setCompoundDrawablesRelative(null, glyph, null, null);
+        tab.setCompoundDrawablePadding(dp(4));
+        tab.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(pale), null, shape(Color.WHITE, 12)));
         return tab;
     }
 
@@ -406,6 +414,7 @@ public class MainActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
+
 
 
 
