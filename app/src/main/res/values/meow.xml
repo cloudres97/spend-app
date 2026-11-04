@@ -4,4 +4,12 @@
         <item name="android:colorAccent">#964964</item>
         <item name="android:windowBackground">#FFF8F4</item>
     </style>
+    <style name="MeowCalendar" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">#964964</item>
+        <item name="android:datePickerStyle">@style/MeowDatePicker</item>
+    </style>
+    <style name="MeowDatePicker" parent="android:style/Widget.Material.Light.DatePicker">
+        <item name="android:datePickerMode">calendar</item>
+    </style>
 </resources>
+

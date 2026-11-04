@@ -26,8 +26,9 @@ public class MainActivity extends Activity {
     private final int[] categoryColors = {0xffce7792,0xff7192b6,0xffa784bd,0xff77a696,
             0xffd89763,0xff857bc0,0xffc15d7b,0xff8d9d69,0xff599888,0xff8174aa,0xffb78166,0xff927c8e};
     private AlertDialog editor;
-    private EditText editorTitle, editorAmount, editorDate;
-    private String[] editorCategory, editorSource;
+    private EditText editorAmount;
+    private TextView editorDate;
+    private String[] editorCategory;
     private JSONObject editorTarget, editorInitial;
     private final String[] categories=ExpenseCategories.ALL;
 
@@ -331,28 +332,62 @@ public class MainActivity extends Activity {
         card.bottomMargin = dp(8);
         records.addView(item, card);
     }
-    private String[] sources={"微信","支付宝","现金/其他","未指定"};
     private void showEditor(JSONObject initial,JSONObject target){
         if(editor!=null&&editor.isShowing())return;
         JSONObject seed=initial==null?new JSONObject():initial;editorInitial=seed;editorTarget=target;
         LinearLayout form=col();pad(form,18,12,18,16);ScrollView scroll=new ScrollView(this);scroll.addView(form);
-        form.addView(text("金额（元）",13,muted,true));editorAmount=new EditText(this);editorAmount.setSingleLine();editorAmount.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);editorAmount.setHint("例如 25.00");editorAmount.setText(seed.optString("amount",""));form.addView(editorAmount);
-        form.addView(text("支出分类 · 点选即可",13,muted,true));String category=seed.optString("category","其他");editorCategory=new String[]{ExpenseCategories.contains(category)?category:"其他"};form.addView(categoryChoices(editorCategory));
-        form.addView(text("消费内容（可选）",13,muted,true));editorTitle=new EditText(this);editorTitle.setSingleLine();editorTitle.setHint("留空则使用所选分类");editorTitle.setText(seed.optString("title",""));form.addView(editorTitle);
-        form.addView(text("日期 · 点击选择",13,muted,true));editorDate=new EditText(this);editorDate.setSingleLine();editorDate.setFocusable(false);editorDate.setHint("选择日期");editorDate.setText(seed.optString("date",today()));editorDate.setOnClickListener(v->{LocalDate current;try{current=LocalDate.parse(editorDate.getText().toString());}catch(Exception e){current=LocalDate.now();}new DatePickerDialog(this,(picker,y,m,d)->editorDate.setText(LocalDate.of(y,m+1,d).toString()),current.getYear(),current.getMonthValue()-1,current.getDayOfMonth()).show();});form.addView(editorDate);
-        form.addView(text("支付方式",13,muted,true));editorSource=new String[]{seed.optString("source","未指定")};if(!java.util.Arrays.asList(sources).contains(editorSource[0]))editorSource[0]="未指定";
-        Spinner source=new Spinner(this);source.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,sources));source.setSelection(java.util.Arrays.asList(sources).indexOf(editorSource[0]));source.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> a,View v,int pos,long id){editorSource[0]=sources[pos];}public void onNothingSelected(AdapterView<?> a){}});form.addView(source);
+        form.addView(text("金额（元）", 15, muted, true));
+        editorAmount = new EditText(this);
+        editorAmount.setSingleLine();
+        editorAmount.setTextSize(36);
+        editorAmount.setTextColor(ink);
+        editorAmount.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        editorAmount.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        editorAmount.setHint("0.00");
+        editorAmount.setText(seed.optString("amount", ""));
+        form.addView(editorAmount);
+        form.addView(text("支出分类 · 点选即可", 13, muted, true));
+        String category = seed.optString("category", "其他");
+        editorCategory = new String[]{ExpenseCategories.contains(category) ? category : "其他"};
+        form.addView(categoryChoices(editorCategory));
+
+        TextView dateLabel = text("日期", 13, muted, true);
+        pad(dateLabel, 0, 10, 0, 8);
+        form.addView(dateLabel);
+        editorDate = button(seed.optString("date", today()), this::showCalendar, false);
+        editorDate.setTextSize(17);
+        editorDate.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_calendar, 0, 0, 0);
+        editorDate.setCompoundDrawablePadding(dp(8));
+        editorDate.setContentDescription("选择日期，" + editorDate.getText());
+        form.addView(editorDate, lp(-1, -2));
         editor=new AlertDialog.Builder(this).setTitle(target==null?"记一笔支出":"修改这笔支出").setView(scroll).setNegativeButton("取消",null).setPositiveButton("保存",null).create();
         if (target != null) editor.setButton(AlertDialog.BUTTON_NEUTRAL, "删除", (d, w) -> confirmDelete(target));
         editor.setOnShowListener(d->editor.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->saveEditor()));editor.setOnDismissListener(d->editor=null);editor.show();editor.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
+    private void showCalendar() {
+        LocalDate current;
+        try {
+            current = LocalDate.parse(editorDate.getText());
+        } catch (java.time.format.DateTimeParseException ignored) {
+            current = LocalDate.now();
+        }
+        DatePickerDialog calendar = new DatePickerDialog(this, R.style.MeowCalendar,
+                (picker, year, month, day) -> {
+                    String selected = LocalDate.of(year, month + 1, day).toString();
+                    editorDate.setText(selected);
+                    editorDate.setContentDescription("选择日期，" + selected);
+                }, current.getYear(), current.getMonthValue() - 1, current.getDayOfMonth());
+        calendar.show();
+    }
+
     private View categoryChoices(String[] chosen){GridLayout grid=new GridLayout(this);grid.setColumnCount(3);java.util.List<TextView> buttons=new ArrayList<>();for(String c:categories){TextView b=button(c,()->{},false);b.setCompoundDrawablesRelativeWithIntrinsicBounds(0,icons[categoryIndex(c)],0,0);b.setCompoundDrawablePadding(dp(5));b.setTextSize(16);b.setMinHeight(dp(50));GridLayout.LayoutParams p=new GridLayout.LayoutParams();p.width=0;p.height=-2;p.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);p.setMargins(dp(3),dp(4),dp(3),dp(4));grid.addView(b,p);buttons.add(b);b.setTag(c);b.setOnClickListener(v->{chosen[0]=c;refreshChoices(buttons,chosen[0]);});}refreshChoices(buttons,chosen[0]);return grid;}
     private void refreshChoices(java.util.List<TextView> buttons,String chosen){for(TextView b:buttons){boolean selected=chosen.equals(b.getTag());b.setSelected(selected);b.setTextColor(selected?Color.WHITE:accent);b.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(selected?Color.WHITE:accent));b.setBackground(shape(selected?accent:pale,12));b.setContentDescription(b.getText()+(selected?"，已选择":"，未选择"));}}
-    private JSONObject editorDraft()throws JSONException{JSONObject o=new JSONObject(editorInitial.toString());o.put("title",editorTitle.getText().toString().trim());o.put("amount",editorAmount.getText().toString().trim());o.put("date",editorDate.getText().toString().trim());o.put("category",editorCategory[0]);o.put("source",editorSource[0]);return o;}
+    private JSONObject editorDraft()throws JSONException{JSONObject o=new JSONObject(editorInitial.toString());o.put("amount",editorAmount.getText().toString().trim());o.put("date",editorDate.getText().toString().trim());o.put("category",editorCategory[0]);return o;}
     private void saveEditor(){
         try{JSONObject o=editorDraft();String a=o.getString("amount");if(!a.matches("[0-9]+(?:\\.[0-9]{1,2})?"))throw new IllegalArgumentException();long cents=new BigDecimal(a).movePointRight(2).longValueExact();if(cents<=0||cents>100000000L)throw new IllegalArgumentException();
             String date=o.getString("date");try{LocalDate.parse(date);}catch(Exception e){editorDate.setError("请选择有效日期");return;}
-            o.put("amount",cents/100.0);o.put("cents",cents);if(o.optString("title").isEmpty())o.put("title",editorCategory[0]+"支出");
+            o.put("amount",cents/100.0);o.put("cents",cents);String oldCategory=editorInitial.optString("category","其他");if(o.optString("title").isEmpty()||o.optString("title").equals(oldCategory+"支出"))o.put("title",editorCategory[0]+"支出");
             if(editorTarget==null){o.put("id",UUID.randomUUID().toString());LedgerStore.append(this,o);}else if(!LedgerStore.update(this,editorTarget,o)){toast("该记录已被删除，请重新打开");return;}
             editor.dismiss();load();render();toast("已保存");
         }catch(Exception e){editorAmount.setError("请输入大于 0、最多两位小数的金额（不超过100万元）");editorAmount.requestFocus();}
@@ -371,6 +406,7 @@ public class MainActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
+
 
 
 
