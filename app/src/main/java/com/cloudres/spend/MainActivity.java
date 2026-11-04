@@ -20,6 +20,7 @@ public class MainActivity extends Activity {
             pale=0xfff9e3e9, bg=0xfffff8f4, line=0xfff1dce2;
     private JSONArray entries;
     private boolean statistics;
+    private boolean monthly;
     private final int[] icons = {R.drawable.ic_food, R.drawable.ic_travel, R.drawable.ic_shop,
             R.drawable.ic_daily, R.drawable.ic_play, R.drawable.ic_home, R.drawable.ic_health,
             R.drawable.ic_study, R.drawable.ic_sport, R.drawable.ic_phone, R.drawable.ic_trip, R.drawable.ic_paw};
@@ -35,6 +36,7 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         statistics = state != null && state.getBoolean("statistics");
+        monthly = state != null && state.getBoolean("monthly");
         load();
         render();
         if (state != null && state.containsKey("editor_draft")) {
@@ -49,6 +51,7 @@ public class MainActivity extends Activity {
     @Override protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
         out.putBoolean("statistics", statistics);
+        out.putBoolean("monthly", monthly);
         if (editor == null || !editor.isShowing()) return;
         try {
             out.putString("editor_draft", editorDraft().toString());
@@ -182,8 +185,8 @@ public class MainActivity extends Activity {
 
     private void showStatistics(LinearLayout content) {
         LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(6);
-        double[] daily = new double[7];
+        LocalDate start = monthly ? end.withDayOfMonth(1) : end.minusDays(6);
+        double[] daily = new double[monthly ? end.getDayOfMonth() : 7];
         double[] byCategory = new double[categories.length];
         for (int i = 0; i < entries.length(); i++) {
             JSONObject entry = entries.optJSONObject(i);
@@ -197,14 +200,22 @@ public class MainActivity extends Activity {
             } catch (java.time.format.DateTimeParseException ignored) {}
         }
         double total = Arrays.stream(daily).sum();
-        content.addView(text("最近 7 天 · " + start + " 至 " + end, 13, muted, false));
+        LinearLayout periods = row();
+        periods.addView(periodButton("周", false), new LinearLayout.LayoutParams(0, dp(44), 1));
+        periods.addView(new View(this), lp(8, 1));
+        periods.addView(periodButton("月", true), new LinearLayout.LayoutParams(0, dp(44), 1));
+        LinearLayout.LayoutParams periodSpace = lp(-1, -2);
+        periodSpace.bottomMargin = dp(14);
+        content.addView(periods, periodSpace);
+        String period = monthly ? "本月" : "最近 7 天";
+        content.addView(text(period + " · " + start + " 至 " + end, 13, muted, false));
         TextView headline = text("¥" + money(total), 30, ink, true);
         pad(headline, 0, 8, 0, 20);
         content.addView(headline);
 
         LinearLayout trend = chartCard(content, "每日支出");
         if (total == 0) {
-            trend.addView(text("这 7 天还没有支出记录。", 15, muted, false));
+            trend.addView(text("这段时间还没有支出记录。", 15, muted, false));
             return;
         }
         View trendChart = new Chart(daily, false);
@@ -214,12 +225,22 @@ public class MainActivity extends Activity {
         }
         trendChart.setContentDescription(description.toString());
         trend.addView(trendChart, lp(-1, 140));
-        LinearLayout days = row();
+        FrameLayout days = new FrameLayout(this);
         for (int i = 0; i < daily.length; i++) {
             LocalDate day = start.plusDays(i);
-            TextView label = text(day.getMonthValue() + "/" + day.getDayOfMonth(), 11, muted, false);
+            boolean showLabel = daily.length <= 7 || i == 0 || i == daily.length - 1
+                    || (i % 5 == 0 && i < daily.length - 3);
+            String dateLabel = showLabel ? day.getMonthValue() + "/" + day.getDayOfMonth() : "";
+            TextView label = text(dateLabel, 11, muted, false);
             label.setGravity(Gravity.CENTER);
-            days.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+            if (!showLabel) continue;
+            final int index = i;
+            days.addView(label, new FrameLayout.LayoutParams(-2, -2));
+            days.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) -> {
+                float center = (index + 0.5f) * days.getWidth() / daily.length;
+                label.setTranslationX(Math.max(0, Math.min(days.getWidth() - label.getWidth(),
+                        center - label.getWidth() / 2f)));
+            });
         }
         trend.addView(days);
 
@@ -245,6 +266,17 @@ public class MainActivity extends Activity {
                     byCategory[i] * 100 / total), 14, muted, false));
             breakdown.addView(legend);
         }
+    }
+
+    private TextView periodButton(String label, boolean month) {
+        TextView control = button(label, () -> {
+            if (monthly == month) return;
+            monthly = month;
+            render();
+        }, monthly == month);
+        control.setSelected(monthly == month);
+        pad(control, 0, 0, 0, 0);
+        return control;
     }
 
     private LinearLayout chartCard(LinearLayout parent, String title) {
@@ -432,6 +464,7 @@ public class MainActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
+
 
 
 
