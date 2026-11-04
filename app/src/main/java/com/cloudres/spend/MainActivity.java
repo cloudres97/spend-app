@@ -106,7 +106,7 @@ public class MainActivity extends Activity {
         } else {
             showRecords(records);
             ImageButton add = new ImageButton(this);
-            add.setImageResource(R.drawable.ic_plus);
+            add.setImageResource(R.drawable.ic_paw);
             add.setScaleType(ImageView.ScaleType.FIT_CENTER);
             add.setColorFilter(Color.WHITE);
             add.setOnClickListener(v -> showEditor(null, null));
@@ -371,6 +371,7 @@ public class MainActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
+
 
 
 
