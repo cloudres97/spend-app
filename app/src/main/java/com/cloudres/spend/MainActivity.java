@@ -356,7 +356,7 @@ public class MainActivity extends Activity {
         editorAmount.setText(seed.optString("amount", ""));
         form.addView(editorAmount);
         form.addView(text("支出分类 · 点选即可", 13, muted, true));
-        String category = seed.optString("category", "其他");
+        String category = seed.optString("category", target == null ? "餐饮" : "其他");
         editorCategory = new String[]{ExpenseCategories.contains(category) ? category : "其他"};
         form.addView(categoryChoices(editorCategory));
 
@@ -371,7 +371,25 @@ public class MainActivity extends Activity {
         form.addView(editorDate, lp(-1, -2));
         editor=new AlertDialog.Builder(this).setTitle(target==null?"记一笔支出":"修改这笔支出").setView(scroll).setNegativeButton("取消",null).setPositiveButton("保存",null).create();
         if (target != null) editor.setButton(AlertDialog.BUTTON_NEUTRAL, "删除", (d, w) -> confirmDelete(target));
-        editor.setOnShowListener(d->editor.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->saveEditor()));editor.setOnDismissListener(d->editor=null);editor.show();editor.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        editor.setOnShowListener(dialog -> {
+            Button save = editor.getButton(AlertDialog.BUTTON_POSITIVE);
+            save.setTextSize(18);
+            save.setTextColor(Color.WHITE);
+            save.setMinHeight(dp(50));
+            save.setMinWidth(dp(92));
+            save.setBackground(new android.graphics.drawable.RippleDrawable(
+                    android.content.res.ColorStateList.valueOf(0x40ffffff), shape(accent, 14), null));
+            android.graphics.drawable.Drawable check = getDrawable(R.drawable.ic_check).mutate();
+            check.setTint(Color.WHITE);
+            check.setBounds(0, 0, dp(22), dp(22));
+            save.setCompoundDrawablesRelative(check, null, null, null);
+            save.setCompoundDrawablePadding(dp(6));
+            pad(save, 12, 0, 12, 0);
+            save.setOnClickListener(v -> saveEditor());
+        });
+        editor.setOnDismissListener(d -> editor = null);
+        editor.show();
+        editor.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
     private void showCalendar() {
         LocalDate current;
@@ -414,6 +432,7 @@ public class MainActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
+
 
 
 
