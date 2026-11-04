@@ -16,13 +16,15 @@ import java.math.BigDecimal;
 import java.util.*;
 
 public class MainActivity extends Activity {
-    private final int ink=0xff182c25, muted=0xff53665d, green=0xff166449,
-            pale=0xffe3f1e9, bg=0xfff6faf7, line=0xffdce8df;
+    private final int ink=0xff422b36, muted=0xff775663, accent=0xff964964,
+            pale=0xfff9e3e9, bg=0xfffff8f4, line=0xfff1dce2;
     private JSONArray entries;
     private boolean statistics;
-    private final String[] icons = {"🍜","🚲","🛍️","🧴","🎮","🏠","🩹","📚","⚽","📱","🧳","✨"};
-    private final int[] categoryColors = {0xffd67457,0xff4c92b2,0xffad74ad,0xff64a393,
-            0xffd38b37,0xff6e85b7,0xffc66d86,0xff85964a,0xff438b67,0xff8076ad,0xffb67f4c,0xff73857b};
+    private final int[] icons = {R.drawable.ic_food, R.drawable.ic_travel, R.drawable.ic_shop,
+            R.drawable.ic_daily, R.drawable.ic_play, R.drawable.ic_home, R.drawable.ic_health,
+            R.drawable.ic_study, R.drawable.ic_sport, R.drawable.ic_phone, R.drawable.ic_trip, R.drawable.ic_paw};
+    private final int[] categoryColors = {0xffce7792,0xff7192b6,0xffa784bd,0xff77a696,
+            0xffd89763,0xff857bc0,0xffc15d7b,0xff8d9d69,0xff599888,0xff8174aa,0xffb78166,0xff927c8e};
     private AlertDialog editor;
     private EditText editorTitle, editorAmount, editorDate;
     private String[] editorCategory, editorSource;
@@ -64,7 +66,7 @@ public class MainActivity extends Activity {
     private LinearLayout.LayoutParams lp(int w,int h){return new LinearLayout.LayoutParams(w<0?w:dp(w),h<0?h:dp(h));}
     private void pad(View v,int a,int b,int c,int d){v.setPadding(dp(a),dp(b),dp(c),dp(d));}
     private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
-    private TextView button(String label,Runnable action,boolean primary){TextView t=text(label,14,primary?Color.WHITE:green,true);t.setGravity(Gravity.CENTER);pad(t,14,13,14,13);t.setBackground(shape(primary?green:pale,14));t.setOnClickListener(v->action.run());return t;}
+    private TextView button(String label,Runnable action,boolean primary){TextView t=text(label,14,primary?Color.WHITE:accent,true);t.setGravity(Gravity.CENTER);pad(t,14,13,14,13);t.setBackground(shape(primary?accent:pale,14));t.setOnClickListener(v->action.run());return t;}
     private void render() {
         LinearLayout root = col();
         root.setBackgroundColor(bg);
@@ -80,7 +82,19 @@ public class MainActivity extends Activity {
         setContentView(root);
 
         root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-        root.addView(text(statistics ? "支出统计" : "日账", 32, ink, true));
+        LinearLayout header = row();
+        ImageView mascot = new ImageView(this);
+        mascot.setImageResource(R.drawable.ic_launcher);
+        mascot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        header.addView(mascot, lp(56, 56));
+        LinearLayout title = col();
+        pad(title, 10, 0, 0, 0);
+        title.addView(text(statistics ? "支出统计" : getString(R.string.app_name), 28, ink, true));
+        TextView subtitle = text(statistics ? "看看小钱都花在哪儿" : "每天记一点，花费看得见", 13, muted, false);
+        pad(subtitle, 0, 5, 0, 0);
+        title.addView(subtitle);
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        root.addView(header);
         ScrollView scroll = new ScrollView(this);
         LinearLayout.LayoutParams content = new LinearLayout.LayoutParams(-1, 0, 1);
         content.topMargin = dp(16);
@@ -91,22 +105,47 @@ public class MainActivity extends Activity {
             showStatistics(records);
         } else {
             showRecords(records);
-            TextView add = button("＋", () -> showEditor(null, null), true);
-            add.setTextSize(40);
+            ImageButton add = new ImageButton(this);
+            add.setImageResource(R.drawable.ic_plus);
+            add.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            add.setColorFilter(Color.WHITE);
+            add.setOnClickListener(v -> showEditor(null, null));
+
             add.setContentDescription("记一笔");
-            pad(add, 0, 0, 0, 0);
-            add.setBackground(shape(green, 40));
+            pad(add, 21, 21, 21, 21);
+            add.setBackground(shape(accent, 40));
             LinearLayout.LayoutParams action = lp(80, 80);
             action.gravity = Gravity.CENTER_HORIZONTAL;
             action.bottomMargin = dp(8);
             root.addView(add, action);
         }
         LinearLayout tabs = row();
-        tabs.addView(button("账单", () -> switchTab(false), !statistics), new LinearLayout.LayoutParams(0, dp(48), 1));
+        tabs.addView(tab("账单", R.drawable.ic_ledger, false), new LinearLayout.LayoutParams(0, dp(48), 1));
         View gap = new View(this);
         tabs.addView(gap, lp(8, 1));
-        tabs.addView(button("统计", () -> switchTab(true), statistics), new LinearLayout.LayoutParams(0, dp(48), 1));
+        tabs.addView(tab("统计", R.drawable.ic_stats, true), new LinearLayout.LayoutParams(0, dp(48), 1));
         root.addView(tabs);
+    }
+
+    private TextView tab(String label, int icon, boolean stats) {
+        TextView tab = button(label, () -> switchTab(stats), statistics == stats);
+        tab.setSelected(statistics == stats);
+        android.graphics.drawable.Drawable glyph = getDrawable(icon).mutate();
+        glyph.setBounds(0, 0, dp(20), dp(20));
+        glyph.setTint(statistics == stats ? Color.WHITE : accent);
+        tab.setCompoundDrawablesRelative(glyph, null, null, null);
+        tab.setCompoundDrawablePadding(dp(6));
+        return tab;
+    }
+
+    private ImageView categoryIcon(int category) {
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(icons[category]);
+        icon.setBackground(shape((categoryColors[category] & 0x00ffffff) | 0x26000000, 16));
+        pad(icon, 10, 10, 10, 10);
+        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return icon;
     }
 
     private void switchTab(boolean showStatistics) {
@@ -186,7 +225,11 @@ public class MainActivity extends Activity {
             View swatch = new View(this);
             swatch.setBackground(shape(categoryColors[i], 6));
             legend.addView(swatch, lp(12, 12));
-            TextView name = text(icons[i] + " " + categories[i], 15, ink, false);
+            ImageView icon = categoryIcon(i);
+            LinearLayout.LayoutParams iconSpace = lp(36, 36);
+            iconSpace.leftMargin = dp(8);
+            legend.addView(icon, iconSpace);
+            TextView name = text(categories[i], 15, ink, false);
             pad(name, 8, 0, 4, 0);
             legend.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
             legend.addView(text(String.format(Locale.CHINA, "¥%s  %.0f%%", money(byCategory[i]),
@@ -255,7 +298,7 @@ public class MainActivity extends Activity {
                 if (i == 0) path.moveTo(x, y);
                 else path.lineTo(x, y);
             }
-            paint.setColor(green);
+            paint.setColor(accent);
             paint.setStrokeWidth(dp(3));
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStyle(Paint.Style.STROKE);
@@ -270,13 +313,10 @@ public class MainActivity extends Activity {
     private void expenseRow(LinearLayout records, JSONObject entry) {
         LinearLayout item = row();
         item.setMinimumHeight(dp(72));
-        pad(item, 0, 12, 0, 12);
+        pad(item, 12, 12, 12, 12);
+        item.setBackground(shape(Color.WHITE, 20));
         int category = categoryIndex(entry.optString("category"));
-        TextView icon = text(icons[category], 23, green, true);
-        icon.setGravity(Gravity.CENTER);
-        icon.setBackground(shape((categoryColors[category] & 0x00ffffff) | 0x26000000, 16));
-        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        item.addView(icon, lp(44, 44));
+        item.addView(categoryIcon(category), lp(46, 46));
         LinearLayout info = col();
         pad(info, 12, 0, 8, 0);
         info.addView(text(entry.optString("title", "支出"), 17, ink, true));
@@ -287,10 +327,9 @@ public class MainActivity extends Activity {
         item.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
         item.addView(text("¥" + money(amount(entry)), 17, ink, true));
         item.setOnClickListener(v -> showEditor(entry, entry));
-        records.addView(item, lp(-1, -2));
-        View divider = new View(this);
-        divider.setBackgroundColor(line);
-        records.addView(divider, lp(-1, 1));
+        LinearLayout.LayoutParams card = lp(-1, -2);
+        card.bottomMargin = dp(8);
+        records.addView(item, card);
     }
     private String[] sources={"微信","支付宝","现金/其他","未指定"};
     private void showEditor(JSONObject initial,JSONObject target){
@@ -307,8 +346,8 @@ public class MainActivity extends Activity {
         if (target != null) editor.setButton(AlertDialog.BUTTON_NEUTRAL, "删除", (d, w) -> confirmDelete(target));
         editor.setOnShowListener(d->editor.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->saveEditor()));editor.setOnDismissListener(d->editor=null);editor.show();editor.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
-    private View categoryChoices(String[] chosen){GridLayout grid=new GridLayout(this);grid.setColumnCount(3);java.util.List<TextView> buttons=new ArrayList<>();for(String c:categories){TextView b=button(icons[categoryIndex(c)]+"\n"+c,()->{},false);b.setTextSize(16);b.setMinHeight(dp(50));GridLayout.LayoutParams p=new GridLayout.LayoutParams();p.width=0;p.height=-2;p.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);p.setMargins(dp(3),dp(4),dp(3),dp(4));grid.addView(b,p);buttons.add(b);b.setTag(c);b.setOnClickListener(v->{chosen[0]=c;refreshChoices(buttons,chosen[0]);});}refreshChoices(buttons,chosen[0]);return grid;}
-    private void refreshChoices(java.util.List<TextView> buttons,String chosen){for(TextView b:buttons){boolean selected=chosen.equals(b.getTag());b.setSelected(selected);b.setTextColor(selected?Color.WHITE:green);b.setBackground(shape(selected?green:pale,12));b.setContentDescription(b.getText()+(selected?"，已选择":"，未选择"));}}
+    private View categoryChoices(String[] chosen){GridLayout grid=new GridLayout(this);grid.setColumnCount(3);java.util.List<TextView> buttons=new ArrayList<>();for(String c:categories){TextView b=button(c,()->{},false);b.setCompoundDrawablesRelativeWithIntrinsicBounds(0,icons[categoryIndex(c)],0,0);b.setCompoundDrawablePadding(dp(5));b.setTextSize(16);b.setMinHeight(dp(50));GridLayout.LayoutParams p=new GridLayout.LayoutParams();p.width=0;p.height=-2;p.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);p.setMargins(dp(3),dp(4),dp(3),dp(4));grid.addView(b,p);buttons.add(b);b.setTag(c);b.setOnClickListener(v->{chosen[0]=c;refreshChoices(buttons,chosen[0]);});}refreshChoices(buttons,chosen[0]);return grid;}
+    private void refreshChoices(java.util.List<TextView> buttons,String chosen){for(TextView b:buttons){boolean selected=chosen.equals(b.getTag());b.setSelected(selected);b.setTextColor(selected?Color.WHITE:accent);b.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(selected?Color.WHITE:accent));b.setBackground(shape(selected?accent:pale,12));b.setContentDescription(b.getText()+(selected?"，已选择":"，未选择"));}}
     private JSONObject editorDraft()throws JSONException{JSONObject o=new JSONObject(editorInitial.toString());o.put("title",editorTitle.getText().toString().trim());o.put("amount",editorAmount.getText().toString().trim());o.put("date",editorDate.getText().toString().trim());o.put("category",editorCategory[0]);o.put("source",editorSource[0]);return o;}
     private void saveEditor(){
         try{JSONObject o=editorDraft();String a=o.getString("amount");if(!a.matches("[0-9]+(?:\\.[0-9]{1,2})?"))throw new IllegalArgumentException();long cents=new BigDecimal(a).movePointRight(2).longValueExact();if(cents<=0||cents>100000000L)throw new IllegalArgumentException();
@@ -332,5 +371,6 @@ public class MainActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
+
 
 

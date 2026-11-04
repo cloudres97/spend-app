@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">喵喵记账</string>
+    <style name="MeowTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#964964</item>
+        <item name="android:windowBackground">#FFF8F4</item>
+    </style>
+</resources>
